@@ -60,7 +60,7 @@ export default function LoginForm() {
     try {
       const result = await loginUser(data).unwrap();
 
-      console.log("Login API result:", result);
+
 
       // Since your backend returns tokens directly, check for tokens directly
       if (result.accessToken && result.refreshToken && result.userId) {
@@ -83,7 +83,7 @@ export default function LoginForm() {
         // Navigate to dashboard once, with replace: true to prevent going back to login
         navigate("/dashboard", { replace: true });
 
-        console.log("Navigated to dashboard");
+
       } else if ("message" in result) {
         toast.error(result.message);
       } else {

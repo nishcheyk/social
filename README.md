@@ -43,20 +43,20 @@ Project Structure
 text
 / (root)
 ├─ frontend/
-│   ├─ src/
-│   │   ├─ components/            # UI components (e.g., AuthenticatedLayout)
-│   │   ├─ hooks/                 # Custom hooks (useAutoRefreshToken, useInactivityTimer)
-│   │   ├─ reducers/              # Redux slice files for auth state
-│   │   ├─ services/              # RTK Query API slice with refresh-baseQuery
-│   │   ├─ store/                 # Redux store configuration
-│   │   └─ pages/                 # Pages such as Login, Dashboard, Profile
+│ ├─ src/
+│ │ ├─ components/ # UI components (e.g., AuthenticatedLayout)
+│ │ ├─ hooks/ # Custom hooks (useAutoRefreshToken, useInactivityTimer)
+│ │ ├─ reducers/ # Redux slice files for auth state
+│ │ ├─ services/ # RTK Query API slice with refresh-baseQuery
+│ │ ├─ store/ # Redux store configuration
+│ │ └─ pages/ # Pages such as Login, Dashboard, Profile
 ├─ backend/
-│   ├─ src/
-│   │   ├─ controllers/           # Backend request handlers
-│   │   ├─ middleware/            # Authentication middleware
-│   │   ├─ models/                # Database models
-│   │   └─ routes/                # Express route definitions
-├─ README.md                     # Project documentation
+│ ├─ src/
+│ │ ├─ controllers/ # Backend request handlers
+│ │ ├─ middleware/ # Authentication middleware
+│ │ ├─ models/ # Database models
+│ │ └─ routes/ # Express route definitions
+├─ README.md # Project documentation
 └─ .gitignore
 Key Features
 Secure JWT Authentication: Access tokens expire frequently, refreshed automatically using refresh tokens.
@@ -147,13 +147,17 @@ Backend
 bash
 cd backend
 npm install
+
 # create .env with JWT secrets and DB URI
+
 npm run start
 Frontend
 bash
 cd frontend
 npm install
+
 # optionally update API base URL if backend runs elsewhere
+
 npm run dev
 Running the Application
 Start backend on port 3000 (or configured port).
