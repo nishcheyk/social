@@ -10,9 +10,8 @@ import ProfilePage from "./pages/ profile"; // fixed import path
 function App() {
   return (
     <Routes>
-      {/* Authenticated routes wrapped with protection */}
+  
       <Route element={<AuthenticatedLayout />}>
-        {/* Redirect root path to dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Home />} />
         <Route path="/profile" element={<ProfilePage />} />

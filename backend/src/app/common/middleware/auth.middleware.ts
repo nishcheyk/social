@@ -12,13 +12,11 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'No token provided' });
   }
-
   const token = authHeader.split(' ')[1];
   const isBlacklisted = await RedisService.get(`bl_${token}`);
   if (isBlacklisted) {
     return res.status(401).json({ message: 'Token has been logged out' });
   }
-
   try {
     const payload = jwt.verify(token, Config.jwtAccessSecret) as JwtPayload;
     req.user = { id: payload.sub!, username: payload.username! };

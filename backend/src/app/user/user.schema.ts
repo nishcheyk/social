@@ -13,7 +13,7 @@ const userSchema = new Schema<IUser>({
   passwordHash: { type: String, required: true },
   refreshToken: { type: String, default: null },
 }, {
-  timestamps: true,  // Optional: adds createdAt and updatedAt fields automatically
+  timestamps: true,  
 });
 
 export const UserModel = model<IUser>('User', userSchema);

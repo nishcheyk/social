@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 
-const INACTIVITY_LIMIT_MS = 15* 60 * 1000; // 30 seconds
+const INACTIVITY_LIMIT_MS = 15* 60 * 1000; // 10 mintues
 
 
 export function useInactivityTimer(onInactive: () => void) {

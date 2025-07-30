@@ -27,12 +27,10 @@ export class UserService {
   }
 
   async login(user: IUser) {
-    // Explicitly cast _id for TypeScript safety
+   
     const userId = (user._id as Types.ObjectId).toString();
-
     const payload = { sub: userId, username: user.username };
 
-    // Cast secrets as string to avoid TS type errors in jwt.sign
     const accessToken = sign(payload, Config.jwtAccessSecret as string, {
       expiresIn: Config.accessTokenExpiry,
     });
@@ -41,9 +39,8 @@ export class UserService {
       expiresIn: Config.refreshTokenExpiry,
     });
 
-    // Store the refresh token in Redis with TTL of 7 days
+   
     await RedisService.set(userId, refreshToken, 7 * 24 * 60 * 60);
-
     return { accessToken, refreshToken, userId };
   }
 

@@ -24,7 +24,7 @@ async function bootstrap() {
 
   app.use(errorHandlerMiddleware);
 
-  // Serve Swagger UI at /api-docs
+ 
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
   app.listen(Config.port, () => {
