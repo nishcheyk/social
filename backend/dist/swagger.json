@@ -1,0 +1,270 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "My User Authentication API",
+        "version": "1.0.0",
+        "description": "This API handles user registration, login, token refreshing, and logout using JWT tokens."
+    },
+    "servers": [
+        {
+            "url": "http://localhost:3000",
+            "description": "Local development server"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Users",
+            "description": "Everything related to user accounts and authentication"
+        }
+    ],
+    "components": {
+        "schemas": {
+            "RegisterUserDto": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 20,
+                        "example": "johndoe"
+                    },
+                    "password": {
+                        "type": "string",
+                        "minLength": 6,
+                        "maxLength": 50,
+                        "example": "strongPassword123"
+                    }
+                }
+            },
+            "LoginUserDto": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "example": "johndoe"
+                    },
+                    "password": {
+                        "type": "string",
+                        "example": "strongPassword123"
+                    }
+                }
+            },
+            "RefreshTokenDto": {
+                "type": "object",
+                "required": ["userId", "refreshToken"],
+                "properties": {
+                    "userId": {
+                        "type": "string",
+                        "example": "60b8d295f1d3a12f4c8d0c4b"
+                    },
+                    "refreshToken": {
+                        "type": "string",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    }
+                }
+            },
+            "TokensResponse": {
+                "type": "object",
+                "properties": {
+                    "accessToken": {
+                        "type": "string",
+                        "description": "Your JWT access token"
+                    },
+                    "refreshToken": {
+                        "type": "string",
+                        "description": "Your JWT refresh token"
+                    },
+                    "userId": {
+                        "type": "string",
+                        "description": "The user's unique ID"
+                    }
+                }
+            },
+            "RegisterResponse": {
+                "type": "object",
+                "properties": {
+                    "userId": {
+                        "type": "string",
+                        "description": "Newly created user ID"
+                    },
+                    "username": {
+                        "type": "string",
+                        "description": "Username of the new user"
+                    }
+                }
+            },
+            "LogoutRequest": {
+                "type": "object",
+                "required": ["userId", "accessToken"],
+                "properties": {
+                    "userId": {
+                        "type": "string"
+                    },
+                    "accessToken": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "description": "An error message explaining what went wrong"
+                    }
+                }
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        }
+    },
+    "paths": {
+        "/register": {
+            "post": {
+                "tags": ["Users"],
+                "summary": "Create a new user account",
+                "requestBody": {
+                    "description": "Data needed to register a new user",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": { "$ref": "#/components/schemas/RegisterUserDto" }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User was successfully registered",
+                        "content": {
+                            "application/json": {
+                                "schema": { "$ref": "#/components/schemas/RegisterResponse" }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid data or username already exists",
+                        "content": {
+                            "application/json": {
+                                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "tags": ["Users"],
+                "summary": "Login and get your tokens",
+                "requestBody": {
+                    "description": "Your username and password",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": { "$ref": "#/components/schemas/LoginUserDto" }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successfully logged in and received tokens",
+                        "content": {
+                            "application/json": {
+                                "schema": { "$ref": "#/components/schemas/TokensResponse" }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid login credentials",
+                        "content": {
+                            "application/json": {
+                                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/refresh": {
+            "post": {
+                "tags": ["Users"],
+                "summary": "Use your refresh token to get new tokens",
+                "requestBody": {
+                    "description": "User ID and refresh token",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": { "$ref": "#/components/schemas/RefreshTokenDto" }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "New access and refresh tokens",
+                        "content": {
+                            "application/json": {
+                                "schema": { "$ref": "#/components/schemas/TokensResponse" }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Refresh token invalid or expired",
+                        "content": {
+                            "application/json": {
+                                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/logout": {
+            "post": {
+                "tags": ["Users"],
+                "summary": "Log out and invalidate your tokens",
+                "requestBody": {
+                    "description": "Provide your user ID and access token to log out",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": { "$ref": "#/components/schemas/LogoutRequest" }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successfully logged out",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logged out successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing user ID or access token in request",
+                        "content": {
+                            "application/json": {
+                                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

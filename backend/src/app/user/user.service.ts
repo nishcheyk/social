@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { sign } from 'jsonwebtoken';
+import jwt, { Secret, SignOptions } from 'jsonwebtoken';
+
 import { Types } from 'mongoose';
 import { UserModel, IUser } from './user.schema';
 import { RedisService } from '../common/services/redis.service';
@@ -27,35 +27,42 @@ export class UserService {
   }
 
   async login(user: IUser) {
-   
     const userId = (user._id as Types.ObjectId).toString();
     const payload = { sub: userId, username: user.username };
 
-    const accessToken = sign(payload, Config.jwtAccessSecret as string, {
-      expiresIn: Config.accessTokenExpiry,
-    });
+    // Use Secret type for secrets to satisfy jwt typings
+    const accessSecret: Secret = Config.jwtAccessSecret as string;
+    const refreshSecret: Secret = Config.jwtRefreshSecret as string;
 
-    const refreshToken = sign(payload, Config.jwtRefreshSecret as string, {
-      expiresIn: Config.refreshTokenExpiry,
-    });
+    // Explicitly type options for jwt.sign
+    const accessSignOptions: SignOptions = { expiresIn: Config.accessTokenExpiry as SignOptions['expiresIn'] };
+    const refreshSignOptions: SignOptions = { expiresIn: Config.refreshTokenExpiry as SignOptions['expiresIn'] };
 
-   
+    const accessToken = jwt.sign(payload, accessSecret, accessSignOptions);
+    const refreshToken = jwt.sign(payload, refreshSecret, refreshSignOptions);
+
+    // Store refresh token in Redis with TTL (7 days)
     await RedisService.set(userId, refreshToken, 7 * 24 * 60 * 60);
+
     return { accessToken, refreshToken, userId };
   }
 
   async logout(userId: string, accessToken: string) {
+    // Decode access token to get expiry time for blacklist TTL
     const decoded = jwt.decode(accessToken) as { exp?: number } | null;
     const currentTimestamp = Math.floor(Date.now() / 1000);
-    let ttl = 15 * 60; 
+
+    let ttl = 15 * 60; // default TTL: 15 minutes
     if (decoded?.exp) {
       ttl = decoded.exp - currentTimestamp;
     }
 
     if (ttl > 0) {
+      // Blacklist access token by storing it with TTL
       await RedisService.set(`bl_${accessToken}`, 'true', ttl);
     }
 
+    // Remove refresh token
     await RedisService.del(userId);
   }
 
@@ -65,6 +72,7 @@ export class UserService {
       throw new Error('Invalid refresh token');
     }
 
+    // Verify refresh token signature and expiry
     try {
       jwt.verify(refreshToken, Config.jwtRefreshSecret as string);
     } catch {
@@ -74,6 +82,7 @@ export class UserService {
     const user = await UserModel.findById(userId);
     if (!user) throw new Error('User not found');
 
+    // Re-issue tokens
     return this.login(user);
   }
 }

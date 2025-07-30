@@ -128,7 +128,7 @@ export const api = createApi({
   }),
 });
 
-export const {̦
+export const {
   useRegisterMutation,
   useLoginMutation,
   useGetProfileQuery,

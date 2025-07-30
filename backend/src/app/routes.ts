@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import React from 'react';
+
 import userRoutes from './user/user.route';
 
 

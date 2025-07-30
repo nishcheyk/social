@@ -1,5 +1,7 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback } from "react";
 import { Outlet, Navigate, Link, useNavigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { useLogoutMutation } from "../services/api";
 import { useAppSelector, useAppDispatch } from "../store/store";
 import { setAccessToken, setAuthenticated } from "../reducers/authReducers";
@@ -11,21 +13,20 @@ export default function AuthenticatedLayout() {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const [logoutUser, { isLoading }] = useLogoutMutation();
   const navigate = useNavigate();
+  const userId = localStorage.getItem('userId') ?? '';
+  const accessToken = localStorage.getItem('accessToken') ?? '';
+  
 
-  const [isHovered, setIsHovered] = useState(false);
-  const [buttonHover, setButtonHover] = useState(false);
-
-  // Manual logout handler (via button)
+  
   const handleLogout = useCallback(async () => {
     try {
-      await logoutUser().unwrap();
+      await logoutUser({ userId, accessToken }).unwrap();
     } catch (error) {
       console.error("Logout failed:", error);
     } finally {
       dispatch(setAccessToken(undefined));
       dispatch(setAuthenticated(false));
 
-      // Clear all relevant tokens and user data in localStorage
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("userId");
@@ -35,117 +36,131 @@ export default function AuthenticatedLayout() {
     }
   }, [dispatch, logoutUser, navigate]);
 
-  // Automatic logout on user inactivity (e.g., 15 minutes)
   const handleLogoutOnInactive = useCallback(() => {
-    dispatch(setAccessToken(undefined));
-    dispatch(setAuthenticated(false));
+    toast.dismiss(); // remove all toasts
+    handleLogout();
+  }, [handleLogout]);
 
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("sessionId");
+  // Toast IDs for warnings so we can control lifetime or dismiss manually
+  const warning1ToastId = "warning1-toast";
+  const warning2ToastId = "warning2-toast";
+  const countdownToastId = "countdown-toast";
 
-    navigate("/login", { replace: true });
-  }, [dispatch, navigate]);
+  // Show warning 1 toast (stays ~15 sec)
+  const handleWarning1 = useCallback(() => {
+    toast.warn(
+      "You have been inactive for 10 minutes. Please interact to stay logged in.",
+      {
+        toastId: warning1ToastId,
+        autoClose: 15000, // 15 seconds
+        closeButton: true,
+        pauseOnHover: true,
+        draggable: true,
+      }
+    );
+  }, []);
 
+  // Show warning 2 toast (last 5 minutes, stays until cleared)
+  const handleWarning2 = useCallback(() => {
+    if (!toast.isActive(warning2ToastId)) {
+      toast.warn("5 minutes remaining before automatic logout due to inactivity.", {
+        toastId: warning2ToastId,
+        autoClose: false, // stay until dismissed
+        closeButton: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+  }, []);
 
-  useInactivityTimer(handleLogoutOnInactive);
+  const handleFinalCountdownTick = useCallback((secondsRemaining: number) => {
+    toast.update(countdownToastId, {
+      render: `Logging out in ${secondsRemaining} second${secondsRemaining !== 1 ? "s" : ""} due to inactivity.`,
+      autoClose: false,
+      closeButton: false,
+      pauseOnHover: false,
+      draggable: false,
+      // to keep toast visible during countdown
+    });
+    if (!toast.isActive(countdownToastId)) {
+      toast.info(`Logging out in ${secondsRemaining} seconds due to inactivity.`, {
+        toastId: countdownToastId,
+        autoClose: false,
+        closeButton: false,
+        pauseOnHover: false,
+        draggable: false,
+      });
+    }
+  }, []);
 
+  // Reset and clear toasts on any user activity
+  const handleReset = useCallback(() => {
+    toast.dismiss([warning1ToastId, warning2ToastId, countdownToastId]);
+  }, []);
+
+  const inactivityTimer = useInactivityTimer({
+    onWarning1: handleWarning1,
+    onWarning2: handleWarning2,
+    onFinalCountdownTick: handleFinalCountdownTick,
+    onInactive: handleLogoutOnInactive,
+    onReset: handleReset,
+  });
 
   useAutoRefreshToken(isAuthenticated);
 
-  // Redirect unauthorized users to login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Styling
-  const headerStyle: React.CSSProperties = {
-    padding: "1rem 2rem",
-    borderBottom: "1px solid #ccc",
-    display: "flex",
-    alignItems: "center",
-    width: "100vw",
-    boxSizing: "border-box",
-    backgroundColor: "#fff",
-  };
-
-  const logoStyle: React.CSSProperties = {
-    marginRight: "1rem",
-    whiteSpace: "nowrap",
-    fontWeight: "bold",
-    fontSize: "1.25rem",
-  };
-
-  const navContainerStyle: React.CSSProperties = {
-    flex: 1,
-    display: "flex",
-    justifyContent: "flex-end",
-  };
-
-  const buttonContainerStyle: React.CSSProperties = {
-    display: "flex",
-    backgroundColor: "rgba(0, 73, 144)",
-    width: isHovered ? 300 : 250,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "space-around",
-    borderRadius: 10,
-    boxShadow:
-      "rgba(0, 0, 0, 0.35) 0px 5px 15px, rgba(0, 73, 144, 0.5) 5px 10px 15px",
-    transition: "width 0.5s",
-    cursor: "pointer",
-    userSelect: "none",
-  };
-
-  const buttonStyle: React.CSSProperties = {
-    outline: "none",
-    border: "none",
-    width: 40,
-    height: 40,
-    borderRadius: "50%",
-    backgroundColor: "transparent",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "#fff",
-    transition: "transform 0.3s ease-in-out",
-    cursor: "pointer",
-    fontSize: 20,
-  };
-
-  const buttonTransform = buttonHover ? "translateY(-3px)" : undefined;
-
   return (
     <>
-      <header style={headerStyle}>
-        <h1 style={logoStyle}>
+      <header
+        style={{
+          padding: "1rem 2rem",
+          borderBottom: "1px solid #ccc",
+          display: "flex",
+          alignItems: "center",
+          width: "100vw",
+          boxSizing: "border-box",
+          backgroundColor: "#fff",
+        }}
+      >
+        <h1 style={{ marginRight: "auto" }}>
           <Link to="/dashboard" style={{ textDecoration: "none", color: "inherit" }}>
             App Logo
           </Link>
         </h1>
 
-        <nav style={navContainerStyle}>
-          <div
-            style={buttonContainerStyle}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-          >
-            <button
-              type="button"
-              onClick={handleLogout}
-              disabled={isLoading}
-              style={{ ...buttonStyle, transform: buttonTransform, opacity: isLoading ? 0.6 : 1 }}
-              onMouseEnter={() => setButtonHover(true)}
-              onMouseLeave={() => setButtonHover(false)}
-              aria-label="Logout"
-              title="Logout"
-            >
-              ⏻
-            </button>
-          </div>
-        </nav>
+        <button
+          onClick={handleLogout}
+          disabled={isLoading}
+          style={{
+            padding: "8px 16px",
+            cursor: "pointer",
+            backgroundColor: "#004990",
+            color: "#fff",
+            borderRadius: 6,
+            border: "none",
+            fontWeight: "bold",
+          }}
+          aria-label="Logout"
+          title="Logout"
+        >
+          Logout ⏻
+        </button>
       </header>
+
+      {/* Toast container for notifications */}
+      <ToastContainer
+        position="top-right"
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss={false}
+        draggable
+        pauseOnHover
+        autoClose={5000}
+      />
 
       <main style={{ padding: "1rem" }}>
         <Outlet />
