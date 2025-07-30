@@ -4,6 +4,7 @@ import { useLogoutMutation } from "../services/api";
 import { useAppSelector, useAppDispatch } from "../store/store";
 import { setAccessToken, setAuthenticated } from "../reducers/authReducers";
 import { useInactivityTimer } from "../hooks/useInactivityTimer";
+import { useAutoRefreshToken } from "../hooks/useAutoRefreshToken";
 
 export default function AuthenticatedLayout() {
   const dispatch = useAppDispatch();
@@ -34,7 +35,7 @@ export default function AuthenticatedLayout() {
     }
   }, [dispatch, logoutUser, navigate]);
 
-  // Automatic logout on user inactivity (30 seconds)
+  // Automatic logout on user inactivity (e.g., 15 minutes)
   const handleLogoutOnInactive = useCallback(() => {
     dispatch(setAccessToken(undefined));
     dispatch(setAuthenticated(false));
@@ -47,15 +48,18 @@ export default function AuthenticatedLayout() {
     navigate("/login", { replace: true });
   }, [dispatch, navigate]);
 
-  // Setup inactivity timer hook
+
   useInactivityTimer(handleLogoutOnInactive);
 
-  // Redirect unauthorized users
+
+  useAutoRefreshToken(isAuthenticated);
+
+  // Redirect unauthorized users to login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Styling (as before)
+  // Styling
   const headerStyle: React.CSSProperties = {
     padding: "1rem 2rem",
     borderBottom: "1px solid #ccc",
